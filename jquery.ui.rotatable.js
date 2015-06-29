@@ -5,6 +5,9 @@ $.widget("ui.rotatable", $.ui.mouse, {
     options: {
         handle: false,
         angle: false,
+        snap: false,
+        steps: 22.5,
+
         
         rotationCenterX: false, 
         rotationCenterY: false,
@@ -147,24 +150,13 @@ $.widget("ui.rotatable", $.ui.mouse, {
             return false;
         }
         
-        var center = this.getElementCenter();
-        
-        var xFromCenter = event.pageX - center[0];
-        var yFromCenter = event.pageY - center[1];
-        var mouseAngle = Math.atan2(yFromCenter, xFromCenter);
-        var rotateAngle = mouseAngle - this.mouseStartAngle + this.elementStartAngle;
-        
-        if (event.shiftKey) {
-			var predefinedAngle = 15 / 180 * Math.PI;
-			if (rotateAngle < 0)
-				predefinedAngle *= -1;
-			rotateAngle -= (rotateAngle + predefinedAngle / 2) % (predefinedAngle) - predefinedAngle / 2;
-		}
+        var rotateAngle = this.getRotateAngle();
 
         this.performRotation(rotateAngle);
         var previousRotateAngle = this.elementCurrentAngle;
         this.elementCurrentAngle = rotateAngle;
 
+        // Plugins callbacks need to be called first.
         this._propagate("rotate", event);
 
         if (previousRotateAngle != rotateAngle) {
@@ -190,6 +182,32 @@ $.widget("ui.rotatable", $.ui.mouse, {
 
         setTimeout( function() { this.element = false; }, 10 );
         return false;
+    },
+
+    getRotateAngle: function(){
+
+        var center = this.getElementCenter();
+        
+        var xFromCenter = event.pageX - center[0];
+        var yFromCenter = event.pageY - center[1];
+        var mouseAngle = Math.atan2(yFromCenter, xFromCenter);
+        var rotateAngle = mouseAngle - this.mouseStartAngle + this.elementStartAngle;
+
+        if( this.options.snap ){
+
+            //convert radians to degrees
+            var rotateDegrees = ( ( rotateAngle / Math.PI ) * 180 ) + 180;
+
+            //round to nearest step
+            rotateDegrees = Math.round( rotateDegrees / this.options.steps ) * this.options.steps;
+
+            //convert it back to radians
+            rotateAngle = ( rotateDegrees * Math.PI ) / 180;
+
+        }
+
+        return rotateAngle;
+
     },
 	
 	wheelRotate: function(event) {
